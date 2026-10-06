@@ -11,11 +11,11 @@
 #include "emu.h"
 #include "main.h"
 
-#define APPNAME                 "MAME"
-#define APPNAME_LOWER           "mame"
-#define CONFIGNAME              "mame"
-#define COPYRIGHT               "Copyright MAMEdev and contributors\nhttps://mamedev.org"
-#define COPYRIGHT_INFO          "Copyright MAMEdev and contributors"
+#define APPNAME                 "CDi-NEO"
+#define APPNAME_LOWER           "cdi-neo"
+#define CONFIGNAME              "cdi-neo"
+#define COPYRIGHT               "Copyright MAMEdev and OM3GAZX\nhttps://github.com/OM3GAZX/cdi-neo"
+#define COPYRIGHT_INFO          "Copyright MAMEdev and OM3GAZX"
 
 const char * emulator_info::get_appname() { return APPNAME;}
 const char * emulator_info::get_appname_lower() { return APPNAME_LOWER;}
