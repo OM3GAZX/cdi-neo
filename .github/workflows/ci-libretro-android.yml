@@ -1,7 +1,6 @@
 name: CI (Libretro - Android ARM64)
 
 on:
-  push:
   pull_request:
 
 jobs:

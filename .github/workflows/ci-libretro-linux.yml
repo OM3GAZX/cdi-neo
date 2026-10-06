@@ -1,7 +1,6 @@
 name: CI (Libretro - Linux x86_64)
 
 on:
-  push:
   pull_request:
 
 jobs:

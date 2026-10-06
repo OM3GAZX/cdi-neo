@@ -1,7 +1,6 @@
 name: CI (Libretro - macOS)
 
 on:
-  push:
   pull_request:
 
 jobs:
