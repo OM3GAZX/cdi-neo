@@ -1533,6 +1533,18 @@ if SOUNDS["MPEG_AUDIO"] then
 end
 
 ---------------------------------------------------
+-- Motorola GSC38GG307 MPEG audio decoder
+--@src/devices/sound/gsc38gg307.h,SOUNDS["GSC38GG307"] = true
+---------------------------------------------------
+
+if SOUNDS["GSC38GG307"] then
+	files {
+		MAME_DIR .. "src/devices/sound/gsc38gg307.cpp",
+		MAME_DIR .. "src/devices/sound/gsc38gg307.h",
+	}
+end
+
+---------------------------------------------------
 -- ZOOM ZSG-2
 --@src/devices/sound/zsg2.h,SOUNDS["ZSG2"] = true
 ---------------------------------------------------

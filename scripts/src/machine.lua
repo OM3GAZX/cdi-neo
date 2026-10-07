@@ -34,6 +34,19 @@ files {
 	MAME_DIR .. "src/devices/machine/timer.cpp",
 	MAME_DIR .. "src/devices/machine/timer.h",
 }
+
+---------------------------------------------------
+-- MPEG system stream demultiplexer
+--@src/devices/machine/mpeg_demux.h,MACHINES["MPEG_DEMUX"] = true
+---------------------------------------------------
+
+if MACHINES["MPEG_DEMUX"] then
+	files {
+		MAME_DIR .. "src/devices/machine/mpeg_demux.cpp",
+		MAME_DIR .. "src/devices/machine/mpeg_demux.h",
+	}
+end
+
 files {
 	MAME_DIR .. "src/devices/imagedev/bitbngr.cpp",
 	MAME_DIR .. "src/devices/imagedev/bitbngr.h",

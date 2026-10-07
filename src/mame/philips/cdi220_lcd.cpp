@@ -101,7 +101,7 @@ cdi220_lcd::cdi220_lcd(const machine_config &mconfig, const char *tag, device_t 
 
 void cdi220_lcd::device_add_mconfig(machine_config &config)
 {
-	SCREEN(config, m_screen);
+	SCREEN(config, m_screen, 0);
 	m_screen->set_refresh_hz(60);
 	m_screen->set_vblank_time(ATTOSECONDS_IN_USEC(0));
 	m_screen->set_size(WIDTH, HEIGHT);
@@ -222,4 +222,3 @@ void cdi220_lcd::draw(bitmap_rgb32& bitmap, const rectangle& bounds)
 			draw_lcd_text(bitmap, bounds, ind.x, ind.y, ind.text);
 	}
 }
-

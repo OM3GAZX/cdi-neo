@@ -19,6 +19,20 @@ files {
 	MAME_DIR .. "src/devices/video/vector.h",
 }
 
+---------------------------------------------------
+-- Motorola MCD251 MPEG video decoder
+--@src/devices/video/mcd251.h,VIDEOS["MCD251"] = true
+---------------------------------------------------
+
+if VIDEOS["MCD251"] then
+	files {
+		MAME_DIR .. "src/devices/video/mcd251.cpp",
+		MAME_DIR .. "src/devices/video/mcd251.h",
+		MAME_DIR .. "src/devices/video/mpeg_video.cpp",
+		MAME_DIR .. "src/devices/video/mpeg_video.h",
+	}
+end
+
 --------------------------------------------------
 --
 --@src/devices/video/315_5124.h,VIDEOS["SEGA315_5124"] = true

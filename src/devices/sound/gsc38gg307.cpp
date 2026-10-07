@@ -86,7 +86,6 @@ void gsc38gg307_device::device_start()
 	save_item(NAME(m_fma_audio_header));
 	save_item(NAME(m_dclk_origin));
 	m_demux.register_save_state(*this);
-	m_audio->register_save_state(*this);
 }
 
 void gsc38gg307_device::device_reset()

@@ -851,7 +851,7 @@ void mcd212_device::update_frame_geometry(bool force)
 	// the screen runs at twice the line count, for interlace
 	const rectangle visarea(0, 767, m_ica_height * 2, total * 2 - 1);
 	screen().configure(screen().width(), total * 2, visarea,
-			screen().pixel_period() * screen().width() * total * 2);
+			(screen().pixel_period() * screen().width() * total * 2).as_attoseconds());
 }
 
 uint16_t mcd212_device::vsr1_r(offs_t offset, uint16_t mem_mask)
