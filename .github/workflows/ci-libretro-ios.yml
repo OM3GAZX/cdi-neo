@@ -18,7 +18,7 @@ jobs:
       - name: Build
         run: |
           make -f Makefile.libretro \
-            platform=ios \
+            platform=ios-arm64 \
             -j$(sysctl -n hw.ncpu)
       - name: Locate and Rename Artifact
         run: |
