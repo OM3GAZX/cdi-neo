@@ -19,7 +19,8 @@ jobs:
         run: |
           make -f Makefile.libretro \
             platform=ios-arm64 \
-            VERBOSE=1
+            VERBOSE=1 \
+            j$(nproc)
 
       - name: Locate and Rename Artifact
         run: |
