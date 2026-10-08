@@ -29,5 +29,5 @@ jobs:
       - name: Upload Built Binaries
         uses: actions/upload-artifact@v4
         with:
-        name: theseuscdi-libretro-ios
-        path: output/
+         name: theseuscdi-libretro-ios
+         path: output/
