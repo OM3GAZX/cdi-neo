@@ -19,7 +19,9 @@ jobs:
         run: |
           make -f Makefile.libretro \
             platform=ios-arm64 \
-            -j$(sysctl -n hw.ncpu)
+            -j$(sysctl -n hw.ncpu) \
+            VERBOSE=1
+            
       - name: Locate and Rename Artifact
         run: |
           mkdir -p output/
