@@ -9,6 +9,7 @@
 
 #include "emu.h"
 #include "emuopts.h"
+#include "ioport.h"
 #include "render.h"
 #include "ui/uimain.h"
 #include "uiinput.h"
@@ -51,8 +52,8 @@ int video_changed  = VIDEO_CHANGED_NONE;
 int screen_configured = 0;
 
 static bool draw_this_frame = true;
-static int maincpu_overclock = 100;
-static int soundcpu_overclock = 100;
+static char cdi_model[16] = "cdimono1";
+static bool cdi_test_plug_enabled = false;
 
 const char *retro_save_directory;
 const char *retro_system_directory;
@@ -203,7 +204,6 @@ static unsigned int retro_led_state[2] = {0};
 #define CDD_SCSI        0x2000
 
 int CDD_status = CDD_READY;
-static int CDD_status_prev = CDD_status;
 
 static void retro_led_interface(void)
 {
@@ -227,7 +227,6 @@ static void retro_led_interface(void)
 
    if (CDD_status & CDD_SCSI)
       CDD_status &= ~(CDD_READ | CDD_DATA);
-   CDD_status_prev = CDD_status;
 }
 
 void retro_fastforwarding(bool enabled)
@@ -248,65 +247,6 @@ void retro_fastforwarding(bool enabled)
    libretro_ff_enabled        = enabled;
 
    environ_cb(RETRO_ENVIRONMENT_SET_FASTFORWARDING_OVERRIDE, &ff_override);
-}
-
-static int ff_counter_on    = 0;
-static int ff_counter_off   = 0;
-static int ff_counter_stuck = 0;
-static void retro_autoloadfastforwarding(void)
-{
-   if (!libretro_supports_ff_override)
-      return;
-
-   if (     autoloadfastforward
-         && !mame_machine_manager::instance()->machine()->video().fastforward())
-   {
-      int ff             = -1;
-      int drive_led      = CDD_status & CDD_READ && CDD_status & CDD_DATA;
-
-      if (!drive_led && libretro_ff_enabled)
-      {
-         /* Normal stop */
-         int ff_max = (CDD_status & CDD_SCSI) ? 10 : 0;
-         ff_counter_on = ff_counter_stuck = 0;
-         ff_counter_off++;
-         if (ff_counter_off > ff_max)
-            ff = 0;
-      }
-      else if (drive_led && !libretro_ff_enabled)
-      {
-         /* Start */
-         ff_counter_off = ff_counter_stuck = 0;
-         if (CDD_status != CDD_status_prev)
-            ff_counter_on++;
-         if (ff_counter_on > 0)
-            ff = 1;
-      }
-      else if (drive_led && libretro_ff_enabled)
-      {
-         /* Stuck stop */
-         int ff_max = 59;
-         ff_counter_on = 0;
-         if (CDD_status == CDD_status_prev)
-            ff_counter_stuck++;
-         if (ff_counter_stuck > ff_max)
-            ff = 2;
-      }
-      else
-      {
-         /* Ignore */
-         ff_counter_off = ff_counter_stuck = ff_counter_on = 0;
-         ff = -2;
-      }
-
-      if (ff > -1)
-         retro_fastforwarding((ff > 1) ? false : (ff) ? true : false);
-#if 0
-      if (ff > -1)
-         printf("CD FF:%2d led:%d - on:%3d off:%3d stuck:%3d\n",
-            ff, drive_led, ff_counter_on, ff_counter_off, ff_counter_stuck);
-#endif
-   }
 }
 
 static const struct retro_controller_description default_controllers[] =
@@ -348,33 +288,17 @@ void retro_set_environment(retro_environment_t cb)
          led_state_cb = led_interface.set_led_state;
 }
 
-static void update_runtime_variables(bool startup)
+static void update_runtime_variables()
 {
-   // Update CPU Overclock
-   if (mame_machine_manager::instance() != NULL && mame_machine_manager::instance()->machine() != NULL)
+   mame_machine_manager *manager = mame_machine_manager::instance();
+   if (manager && manager->machine())
    {
-      device_enumerator iter(mame_machine_manager::instance()->machine()->root_device());
-      for (device_t &device : iter)
+      auto const &ports = manager->machine()->ioport().ports();
+      auto const service_port = ports.find(":SERVICE");
+      if (service_port != ports.end())
       {
-         if (dynamic_cast<cpu_device *>(&device) != nullptr)
-         {
-            float clock = 100;
-
-            if (!strcmp(device.tag(), ":maincpu"))
-               clock = maincpu_overclock;
-            else if (!strcmp(device.tag(), ":soundcpu")
-                  || !strcmp(device.tag(), ":audiocpu")
-                  ||  strstr(device.tag(), ":audio_cpu"))
-               clock = soundcpu_overclock;
-
-            // Skip at startup if using default speed, because
-            // games like 'dragoona' use a CPU timing boothack
-            if (startup && clock == 100)
-               continue;
-
-            cpu_device* cpu = downcast<cpu_device *>(&device);
-            cpu->set_clock_scale(clock * 0.01f);
-         }
+         if (ioport_field *test_plug = service_port->second->field(0x01))
+            test_plug->set_value(cdi_test_plug_enabled ? 1 : 0);
       }
    }
 }
@@ -382,6 +306,21 @@ static void update_runtime_variables(bool startup)
 static void check_variables(void)
 {
    struct retro_variable var = {0};
+
+   var.key   = CORE_NAME "_cdi_model";
+   var.value = NULL;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (!strcmp(var.value, "cdimono1n"))
+         snprintf(cdi_model, sizeof(cdi_model), "%s", "cdimono1n");
+      else if (!strcmp(var.value, "cdimono1"))
+         snprintf(cdi_model, sizeof(cdi_model), "%s", "cdimono1");
+   }
+
+   var.key   = CORE_NAME "_test_plug";
+   var.value = NULL;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+      cdi_test_plug_enabled = !strcmp(var.value, "enabled");
 
    var.key   = CORE_NAME "_joystick_deadzone";
    var.value = NULL;
@@ -404,31 +343,6 @@ static void check_variables(void)
       strcpy(joystick_threshold, var.value);
    }
 
-   var.key   = CORE_NAME "_mame_4way_enable";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      mame_4way_enable = true;
-      if (!strcmp(var.value, "disabled"))
-         mame_4way_enable = false;
-      if (!strcmp(var.value, "4way"))
-         sprintf(mame_4way_map, "%s", "s8.4s8.44s8.4445");
-      if (!strcmp(var.value, "strict"))
-         sprintf(mame_4way_map, "%s", "ss8.sss8.4sss8.44s5.4445");
-      if (!strcmp(var.value, "qbert"))
-         sprintf(mame_4way_map, "%s", "4444s8888.4444s8888.444458888.444555888.ss5.222555666.222256666.2222s6666.2222s6666");
-   }
-
-   var.key   = CORE_NAME "_buttons_profiles";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         buttons_profiles = false;
-      if (!strcmp(var.value, "enabled"))
-         buttons_profiles = true;
-   }
-
    var.key   = CORE_NAME "_mouse_enable";
    var.value = NULL;
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -437,30 +351,6 @@ static void check_variables(void)
          mouse_enable = false;
       if (!strcmp(var.value, "enabled"))
          mouse_enable = true;
-   }
-
-   var.key   = CORE_NAME "_lightgun_mode";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "touchscreen"))
-         lightgun_mode = RETRO_SETTING_LIGHTGUN_MODE_POINTER;
-      else if (!strcmp(var.value, "lightgun"))
-         lightgun_mode = RETRO_SETTING_LIGHTGUN_MODE_LIGHTGUN;
-      else
-         lightgun_mode = RETRO_SETTING_LIGHTGUN_MODE_DISABLED;
-   }
-
-   var.key   = CORE_NAME "_lightgun_offscreen_mode";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "free"))
-         lightgun_offscreen_mode = RETRO_SETTING_LIGHTGUN_OFFSCREEN_MODE_FREE;
-      else if (!strcmp(var.value, "fixed (top left)"))
-         lightgun_offscreen_mode = RETRO_SETTING_LIGHTGUN_OFFSCREEN_MODE_TOP_LEFT;
-      else
-         lightgun_offscreen_mode = RETRO_SETTING_LIGHTGUN_OFFSCREEN_MODE_BOTTOM_RIGHT;
    }
 
    var.key   = CORE_NAME "_rotation_mode";
@@ -543,41 +433,6 @@ static void check_variables(void)
       }
    }
 
-   var.key   = CORE_NAME "_cpu_overclock";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      maincpu_overclock = 100;
-      if (strcmp(var.value, "default"))
-         maincpu_overclock = atoi(var.value);
-   }
-
-   var.key   = CORE_NAME "_cpu_sound_overclock";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      soundcpu_overclock = 100;
-      if (strcmp(var.value, "default"))
-         soundcpu_overclock = atoi(var.value);
-   }
-
-   var.key   = CORE_NAME "_autoloadfastforward";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         autoloadfastforward = false;
-      else
-         autoloadfastforward = true;
-   }
-
-   var.key   = CORE_NAME "_coin_limit";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      coin_limit = atoi(var.value);
-   }
-
    var.key   = CORE_NAME "_thread_mode";
    var.value = NULL;
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -586,16 +441,6 @@ static void check_variables(void)
          thread_mode = 1;
       else
          thread_mode = 0;
-   }
-
-   var.key   = CORE_NAME "_cheats_enable";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         cheats_enable = false;
-      if (!strcmp(var.value, "enabled"))
-         cheats_enable = true;
    }
 
    var.key   = CORE_NAME "_throttle";
@@ -608,103 +453,6 @@ static void check_variables(void)
          throttle_enable = true;
    }
 
-   var.key   = CORE_NAME "_boot_to_bios";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         boot_to_bios_enable = true;
-      if (!strcmp(var.value, "disabled"))
-         boot_to_bios_enable = false;
-   }
-
-   var.key   = CORE_NAME "_boot_to_osd";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         boot_to_osd_enable = true;
-      if (!strcmp(var.value, "disabled"))
-         boot_to_osd_enable = false;
-   }
-
-   var.key = CORE_NAME "_read_config";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         read_config_enable = false;
-      if (!strcmp(var.value, "enabled"))
-         read_config_enable = true;
-   }
-
-   var.key   = CORE_NAME "_write_config";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         write_config_enable = false;
-      if (!strcmp(var.value, "enabled"))
-         write_config_enable = true;
-   }
-
-   var.key   = CORE_NAME "_mame_paths_enable";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         mame_paths_enable = true;
-      if (!strcmp(var.value, "disabled"))
-         mame_paths_enable = false;
-   }
-
-   var.key   = CORE_NAME "_saves";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "game"))
-         game_specific_saves_enable = true;
-      if (!strcmp(var.value, "system"))
-         game_specific_saves_enable = false;
-   }
-
-   var.key   = CORE_NAME "_auto_save";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "disabled"))
-         auto_save_enable = false;
-      if (!strcmp(var.value, "enabled"))
-         auto_save_enable = true;
-   }
-
-
-   var.key   = CORE_NAME "_softlists_enable";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         softlist_enable = true;
-      if (!strcmp(var.value, "disabled"))
-         softlist_enable = false;
-   }
-
-   var.key   = CORE_NAME "_softlists_auto_media";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      if (!strcmp(var.value, "enabled"))
-         softlist_auto = true;
-      if (!strcmp(var.value, "disabled"))
-         softlist_auto = false;
-   }
-
-   var.key   = CORE_NAME "_media_type";
-   var.value = NULL;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      sprintf(mediaType,"-%s",var.value);
-   }
 }
 
 unsigned retro_api_version(void)
@@ -716,9 +464,9 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
 
-   info->library_name     = "MAME";
+   info->library_name     = "Theseus-CDi";
    info->library_version  = build_version;
-   info->valid_extensions = "cmd|zip|7z|chd|cue|iso|bin";
+   info->valid_extensions = "chd|cue|iso|bin";
    info->need_fullpath    = true;
    info->block_extract    = true;
 }
@@ -886,7 +634,6 @@ void retro_deinit(void)
 void retro_reset(void)
 {
    mame_reset = 1;
-   coin_inserted = 0;
 }
 
 void retro_run(void)
@@ -896,7 +643,7 @@ void retro_run(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
    {
       check_variables();
-      update_runtime_variables(false);
+      update_runtime_variables();
    }
 
    if (!retro_pause)
@@ -904,9 +651,6 @@ void retro_run(void)
    RLOOP = 1;
 
    /* Automatic loading fast-forward */
-   if (autoloadfastforward)
-      retro_autoloadfastforwarding();
-
    /* LED interface */
    if (led_state_cb)
       retro_led_interface();
@@ -977,7 +721,7 @@ bool retro_load_game(const struct retro_game_info *info)
       }
 
       extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
-      int const command_length = snprintf(RPATH, sizeof(RPATH), "cdimono1 -cdrom \"%s\"", info->path);
+      int const command_length = snprintf(RPATH, sizeof(RPATH), "%s -cdrom \"%s\"", cdi_model, info->path);
       if ((command_length < 0) || (size_t(command_length) >= sizeof(RPATH)))
       {
          RPATH[0] = '\0';
@@ -1002,7 +746,7 @@ bool retro_load_game(const struct retro_game_info *info)
    }
 
    retro_load_ok = true;
-   update_runtime_variables(true);
+   update_runtime_variables();
 
    return true;
 }

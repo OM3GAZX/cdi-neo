@@ -154,6 +154,7 @@ static INPUT_PORTS_START( cdi )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( cdimono2 )
+	PORT_INCLUDE(cdi)
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( quizard )

@@ -23,7 +23,7 @@
 #define PIXEL_TYPE UINT16
 #endif
 
-#define CORE_NAME "mame"
+#define CORE_NAME "theseus-cdi"
 #define RETRO_PATH_MAX 512
 
 enum
@@ -82,7 +82,6 @@ extern int video_changed;
 extern int retro_pause;
 extern int mame_reset;
 extern char g_rom_dir[RETRO_PATH_MAX];
-extern char mediaType[10];
 extern const char *retro_save_directory;
 extern const char *retro_system_directory;
 extern const char *retro_content_directory;
@@ -90,21 +89,8 @@ extern const char *retro_content_directory;
 extern int lightgun_mode;
 extern int lightgun_offscreen_mode;
 extern bool mouse_enable;
-extern bool cheats_enable;
-extern bool boot_to_osd_enable;
-extern bool boot_to_bios_enable;
-extern bool softlist_enable;
-extern bool softlist_auto;
-extern bool autoloadfastforward;
-extern bool write_config_enable;
-extern bool read_config_enable;
 extern bool throttle_enable;
-extern bool auto_save_enable;
-extern bool game_specific_saves_enable;
 extern bool buttons_profiles;
-extern bool mame_paths_enable;
-extern bool mame_4way_enable;
-extern char mame_4way_map[256];
 extern char joystick_deadzone[8];
 extern char joystick_saturation[8];
 extern char joystick_threshold[8];
@@ -118,8 +104,6 @@ extern float retro_fps;
 extern int rotation_mode;
 extern int thread_mode;
 extern int screen_configured;
-extern unsigned coin_inserted;
-extern unsigned coin_limit;
 
 extern const char *slash_str;
 

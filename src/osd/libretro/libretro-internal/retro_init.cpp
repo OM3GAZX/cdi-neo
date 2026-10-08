@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <fstream>
+#include <filesystem>
 #include <string>
+#include <system_error>
 
 #include "osdepend.h"
 #include "emu.h"
@@ -51,21 +53,8 @@ int mame_reset = -1;
 int  lightgun_mode = RETRO_SETTING_LIGHTGUN_MODE_DISABLED;
 int  lightgun_offscreen_mode = RETRO_SETTING_LIGHTGUN_OFFSCREEN_MODE_FREE;
 bool mouse_enable = false;
-bool cheats_enable = false;
-bool boot_to_osd_enable = false;
-bool boot_to_bios_enable = false;
-bool softlist_enable = false;
-bool softlist_auto = false;
-bool autoloadfastforward = false;
-bool write_config_enable = false;
-bool read_config_enable = false;
-bool auto_save_enable = false;
 bool throttle_enable = false;
-bool game_specific_saves_enable = false;
-bool buttons_profiles = true;
-bool mame_paths_enable = false;
-bool mame_4way_enable = false;
-char mame_4way_map[256];
+bool buttons_profiles = false;
 char joystick_deadzone[8];
 char joystick_saturation[8];
 char joystick_threshold[8];
@@ -82,7 +71,6 @@ int thread_mode = 0;
 // rom file name and path
 char g_rom_dir[RETRO_PATH_MAX];
 static char cmd_rom_dir[RETRO_PATH_MAX];
-char mediaType[10];
 static char MgamePath[RETRO_PATH_MAX];
 static char MparentPath[RETRO_PATH_MAX];
 static char MgameName[RETRO_PATH_MAX];
@@ -400,10 +388,6 @@ static void Set_Rotation_Option(int gameRot)
    int screenRot = 0;
    bool norotate = false;
 
-   /* Force internal rotation when booting to osd */
-   if (boot_to_osd_enable)
-      rotation_mode = 1;
-
    switch (gameRot)
    {
       case 7: /* All flags (shtrider) */
@@ -496,12 +480,6 @@ static void Set_Default_Option(void)
    Add_Option("-joystick_threshold");
    Add_Option(joystick_threshold);
 
-   if (mame_4way_enable)
-   {
-      Add_Option("-joystick_map");
-      Add_Option(mame_4way_map);
-   }
-
    if (mouse_enable)
    {
       Add_Option("-mouse");
@@ -520,40 +498,15 @@ static void Set_Default_Option(void)
    else
       Add_Option("-nothrottle");
 
-   if (cheats_enable)
-      Add_Option("-cheat");
-   else
-      Add_Option("-nocheat");
-
-   if (write_config_enable)
-      Add_Option("-writeconfig");
-
-   if (read_config_enable)
-      Add_Option("-readconfig");
-   else
-      Add_Option("-noreadconfig");
-
-   if (auto_save_enable)
-      Add_Option("-autosave");
-
-   if (game_specific_saves_enable)
-   {
-      char option[1024];
-      Add_Option("-statename");
-      snprintf(option, sizeof(option), "%%g/%s", MgameName);
-      Add_Option(option);
-   }
+   Add_Option("-noreadconfig");
 
    Add_Option("-update_in_pause");
 }
 
-static void Set_Path_Option(void)
+static bool Set_Path_Option(void)
 {
    int i;
    char tmp_dir[4096];
-
-   if (mame_paths_enable)
-      return;
 
    /* Setup path option according to retro (save/system) directory,
     * or current if NULL. */
@@ -577,26 +530,30 @@ static void Set_Path_Option(void)
       Add_Option((char*)(tmp_dir));
    }
 
-   if (boot_to_osd_enable || !g_rom_dir[0])
-      return;
+   if (!g_rom_dir[0])
+      return true;
 
-   Add_Option((char*)"-rompath");
-
-   if (retro_system_directory)
-      snprintf(tmp_dir, sizeof(tmp_dir), "%s;%s%c%s%c%s;%s%c%s%c%s",
-            g_rom_dir,
-            retro_system_directory, slash, CORE_NAME, slash, "bios",
-            retro_system_directory, slash, CORE_NAME, slash, "roms");
-   else
-      snprintf(tmp_dir, sizeof(tmp_dir), "%s", g_rom_dir);
-
-   if (cmd_rom_dir[0] && strcmp(g_rom_dir, cmd_rom_dir))
+   if (!retro_system_directory || !retro_system_directory[0])
    {
-      strcat(tmp_dir, ";");
-      strcat(tmp_dir, cmd_rom_dir);
+      log_cb(RETRO_LOG_ERROR, "%s: RetroArch system directory is unavailable; cannot locate CD-i BIOS files.\n", __func__);
+      return false;
    }
 
-   Add_Option((char*)(tmp_dir));
+   std::filesystem::path const bios_directory = std::filesystem::path(retro_system_directory) / "theseus-cdi";
+   std::error_code error;
+   std::filesystem::create_directories(bios_directory, error);
+   if (error || !std::filesystem::is_directory(bios_directory, error) || error)
+   {
+      log_cb(RETRO_LOG_ERROR, "%s: cannot create CD-i BIOS directory \"%s\": %s\n",
+            __func__, bios_directory.string().c_str(),
+            error ? error.message().c_str() : "path is not a directory");
+      return false;
+   }
+
+   Add_Option((char*)"-rompath");
+   snprintf(tmp_dir, sizeof(tmp_dir), "%s", bios_directory.string().c_str());
+   Add_Option(tmp_dir);
+   return true;
 }
 
 
@@ -630,44 +587,13 @@ static int execute_game(char *path)
    }
 
    log_cb(RETRO_LOG_DEBUG, "Creating frontend for game: %s\n", MgameName);
-   log_cb(RETRO_LOG_DEBUG, "Softlists: %d\n", softlist_enable);
-
    Set_Default_Option();
    Set_Rotation_Option(gameRot);
-   Set_Path_Option();
+   if (!Set_Path_Option())
+      return -1;
 
-   if (!boot_to_osd_enable && g_rom_dir[0])
-   {
-      if (softlist_enable)
-      {
-         if (!arcade)
-         {
-            /* Must have valid system name for adding it */
-            if (getGameInfo(MsystemName, &gameRot, &driverIndex, &arcade))
-               Add_Option(MsystemName);
-
-            if (!boot_to_bios_enable)
-            {
-               if (!softlist_auto)
-                  Add_Option((char*)mediaType);
-               Add_Option(MgameName);
-            }
-         }
-         else
-            Add_Option(MgameName);
-      }
-      else
-      {
-         if (!strcmp(mediaType, "-rom"))
-            Add_Option(MgameName);
-         else
-         {
-            Add_Option(MsystemName);
-            Add_Option((char*)mediaType);
-            Add_Option((char*)gameName);
-         }
-      }
-   }
+   if (g_rom_dir[0])
+      Add_Option(MgameName);
    else if (MgamePath[0])
    {
       Add_Option((char*)("-rompath"));
@@ -878,7 +804,8 @@ static int execute_game_cmd(char *path)
 
    Set_Default_Option();
    Set_Rotation_Option(gameRot);
-   Set_Path_Option();
+   if (!Set_Path_Option())
+      return -1;
 
    if (Only1Arg)
    {
@@ -911,8 +838,7 @@ static int execute_game_cmd(char *path)
             skip_rompath = false;
             continue;
          }
-         else if (!mame_paths_enable
-               && !strcmp(ARGUV[i], "-rp")
+         else if (!strcmp(ARGUV[i], "-rp")
                && cmd_rom_dir[0])
          {
             skip_rompath = true;

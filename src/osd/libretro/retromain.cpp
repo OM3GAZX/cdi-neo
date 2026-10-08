@@ -366,6 +366,10 @@ void retro_osd_interface::customize_input_type_list(std::vector<input_type_entry
 	for (input_type_entry &entry : typelist)
 		switch (entry.type())
 		{
+			case IPT_BUTTON1:
+				entry.defseq(SEQ_TYPE_STANDARD) |= JOYCODE_BUTTON3_INDEXED(entry.player());
+				break;
+
 			// Replace default mouse button order from "1 3 2" to "1 2 3"
 			case IPT_BUTTON2:
 				switch (entry.player())
@@ -377,6 +381,7 @@ void retro_osd_interface::customize_input_type_list(std::vector<input_type_entry
 						entry.defseq(SEQ_TYPE_STANDARD).set(KEYCODE_S, input_seq::or_code, MOUSECODE_BUTTON2_INDEXED(1), input_seq::or_code, GUNCODE_BUTTON2_INDEXED(1));
 						break;
 				}
+				entry.defseq(SEQ_TYPE_STANDARD) |= JOYCODE_BUTTON1_INDEXED(entry.player());
 				break;
 			case IPT_BUTTON3:
 				switch (entry.player())
@@ -388,6 +393,16 @@ void retro_osd_interface::customize_input_type_list(std::vector<input_type_entry
 						entry.defseq(SEQ_TYPE_STANDARD).set(KEYCODE_Q, input_seq::or_code, MOUSECODE_BUTTON3_INDEXED(1));
 						break;
 				}
+				entry.defseq(SEQ_TYPE_STANDARD) |= JOYCODE_BUTTON2_INDEXED(entry.player());
+				break;
+
+			case IPT_MOUSE_X:
+				entry.defseq(SEQ_TYPE_DECREMENT).set(JOYCODE_HAT1LEFT_INDEXED(entry.player()));
+				entry.defseq(SEQ_TYPE_INCREMENT).set(JOYCODE_HAT1RIGHT_INDEXED(entry.player()));
+				break;
+			case IPT_MOUSE_Y:
+				entry.defseq(SEQ_TYPE_DECREMENT).set(JOYCODE_HAT1UP_INDEXED(entry.player()));
+				entry.defseq(SEQ_TYPE_INCREMENT).set(JOYCODE_HAT1DOWN_INDEXED(entry.player()));
 				break;
 
 			// Add default lightgun port 1+2 Start+Select to global "other" controls
