@@ -466,7 +466,7 @@ void retro_get_system_info(struct retro_system_info *info)
 
    info->library_name     = "Theseus-CDi";
    info->library_version  = build_version;
-   info->valid_extensions = "chd|cue|iso|bin";
+   info->valid_extensions = "chd|cue|iso";
    info->need_fullpath    = true;
    info->block_extract    = true;
 }
@@ -647,7 +647,7 @@ void retro_run(void)
    }
 
    if (!retro_pause)
-      retro_main_loop();
+      retro_main_loop();input
    RLOOP = 1;
 
    /* Automatic loading fast-forward */
