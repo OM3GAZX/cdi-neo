@@ -647,7 +647,7 @@ void retro_run(void)
    }
 
    if (!retro_pause)
-      retro_main_loop();input
+      retro_main_loop();
    RLOOP = 1;
 
    /* Automatic loading fast-forward */
