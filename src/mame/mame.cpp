@@ -11,9 +11,9 @@
 #include "emu.h"
 #include "main.h"
 
-#define APPNAME                 "CDi-NEO"
-#define APPNAME_LOWER           "cdi-neo"
-#define CONFIGNAME              "cdi-neo"
+#define APPNAME                 "Theseus-CDi"
+#define APPNAME_LOWER           "theseus-cdi"
+#define CONFIGNAME              "theseus-cdi"
 #define COPYRIGHT               "Copyright MAMEdev and OM3GAZX\nhttps://github.com/OM3GAZX/cdi-neo"
 #define COPYRIGHT_INFO          "Copyright MAMEdev and OM3GAZX"
 

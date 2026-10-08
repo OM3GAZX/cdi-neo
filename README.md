@@ -1,94 +1,58 @@
 # **Libretro notice** #
 
-Before sending bug reports to the upstream bug tracker, make sure the bugs are reproducible in the latest standalone release.
+Send bugs or issues related to the core's functionality here on this repo.
+Report emulation issues on the upstream MAME repo.
 
-To build libretro MAME core from source you need to use `Makefile.libretro` make file:
+# Theseus-CDi
 
-```
-make -f Makefile.libretro
-```
+## Why? MAME already exists.
 
+MAME's way of loading commercial games on frontends like Libretro was... complicated. You had to get
+hash files, dummy zip archives, and CHDs, just like any arcade ROM. Theseus-CDi, much like its predecessor,
+SAME_CDi, simplifies the loading of games to make it feel like a regular console emulator.
 
-For faster building after the initial makefile creation:
+## What happened to SAME_CDi?
 
-```
-make -f Makefile.libretro PREMAKE=0
-```
+In a way, SAME_CDi was pretty much hard to maintain, as it was based on an archaic MAME framework.
+I did a painstaking effort of backporting code from MAME 0.287 to 0.22x(!), all by hand with no AI.
+Definitely an annoying trial-and-error process.
+Theseus-CDi aims for ease of maintainability, unlike SAME_CDi, which had stayed on its ancient
+framework since 2022.
 
-For Windows install `lld` for much faster linking.
+### What games are supported?
 
-# MAME
+Virtually every game is supported, even the ones relying on the mythical DVC peripheral, which went
+unemulated for 30 years on an open-source emulator.
+Practically, though, I've only tested Tetris, Atlantis: The Last Resort, and Hotel Mario.
 
-## What is MAME?
+### I want to compile this. How do I do that?
 
-MAME is a multi-purpose emulation framework.
-
-MAME's purpose is to preserve decades of software history. As electronic technology continues to rush forward, MAME prevents this important "vintage" software from being lost and forgotten. This is achieved by documenting the hardware and how it functions. The source code to MAME serves as this documentation. The fact that the software is usable serves primarily to validate the accuracy of the documentation (how else can you prove that you have recreated the hardware faithfully?). Over time, MAME (originally stood for Multiple Arcade Machine Emulator) absorbed the sister-project MESS (Multi Emulator Super System), so MAME now documents a wide variety of (mostly vintage) computers, video game consoles and calculators, in addition to the arcade video games that were its initial focus.
-
-## Where can I find out more?
-
-* [Official MAME Development Team Site](https://www.mamedev.org/) (includes binary downloads, wiki, forums, and more)
-* [MAME Testers](https://mametesters.org/) (official bug tracker for MAME)
-
-### Community
-
-* [MAME Forums on bannister.org](https://forums.bannister.org/ubbthreads.php?ubb=cfrm&c=5)
-* [r/MAME](https://www.reddit.com/r/MAME/) on Reddit
-* [MAMEWorld Forums](https://www.mameworld.info/ubbthreads/)
-
-## Development
-
-![Alt](https://repobeats.axiom.co/api/embed/8461d8ae4630322dafc736fc25782de214b49630.svg "Repobeats analytics image")
-
-### CI status and code scanning
-
-[![CI (Linux)](https://github.com/mamedev/mame/workflows/CI%20(Linux)/badge.svg)](https://github.com/mamedev/mame/actions/workflows/ci-linux.yml) [![CI (Windows](https://github.com/mamedev/mame/workflows/CI%20(Windows)/badge.svg)](https://github.com/mamedev/mame/actions/workflows/ci-windows.yml) [![CI (macOS)](https://github.com/mamedev/mame/workflows/CI%20(macOS)/badge.svg)](https://github.com/mamedev/mame/actions/workflows/ci-macos.yml) [![Compile UI translations](https://github.com/mamedev/mame/workflows/Compile%20UI%20translations/badge.svg)](https://github.com/mamedev/mame/actions/workflows/language.yml) [![Build documentation](https://github.com/mamedev/mame/workflows/Build%20documentation/badge.svg)](https://github.com/mamedev/mame/actions/workflows/docs.yml)  [![Coverity Scan Status](https://scan.coverity.com/projects/5727/badge.svg?flat=1)](https://scan.coverity.com/projects/mame-emulator)
-
-### How to compile?
-
-If you're on a UNIX-like system (including Linux and macOS), it could be as easy as typing
+It's fairly simple. If you're on an UNIX-like system (like Linux), simply run the following:
 
 ```
-make
+make -f Makefile.libretro SUBTARGET=cdi
 ```
 
-for a full build,
+On a Windows system, you can use a compiler environment like MSYS2.
 
-```
-make SUBTARGET=tiny
-```
+### AI disclosure
 
-for a build including a small subset of supported systems.
+Yes, you probably saw this coming from an up-and-coming coder in this day and age. It was
+simply inevitable.
 
-See the [Compiling MAME](http://docs.mamedev.org/initialsetup/compilingmame.html) page on our documentation site for more information, including prerequisites for macOS and popular Linux distributions.
+GPT-6 Astra helped me with backporting the CD-i drivers. They didn't work as-is: they used
+a modern version of screen.h API calls that had fewer arguments. I couldn't figure out how
+those API calls even worked, so I had to ask the AI for help in that regard. MAME is one
+behemoth of an emulator, and I couldn't have learned the ins and outs of the emulator in a
+week.
 
-For recent versions of macOS you need to install [Xcode](https://developer.apple.com/xcode/) including command-line tools and [SDL 2.0](https://github.com/libsdl-org/SDL/releases/latest).
-
-For Windows users, we provide a ready-made [build environment](http://www.mamedev.org/tools/) based on MinGW-w64.
-
-Visual Studio builds are also possible, but you still need [build environment](http://www.mamedev.org/tools/) based on MinGW-w64.
-In order to generate solution and project files just run:
-
-```
-make vs2022
-```
-or use this command to build it directly using msbuild
-
-```
-make vs2022 MSBUILD=1
-```
-
-### Coding standard
-
-MAME source code should be viewed and edited with your editor set to use four spaces per tab. Tabs are used for initial indentation of lines, with one tab used per indentation level. Spaces are used for other alignment within a line.
-
-Some parts of the code follow [Allman style](https://en.wikipedia.org/wiki/Indent_style#Allman_style); some parts of the code follow [K&R style](https://en.wikipedia.org/wiki/Indent_style#K.26R_style) -- mostly depending on who wrote the original version. **Above all else, be consistent with what you modify, and keep whitespace changes to a minimum when modifying existing source.** For new code, the majority tends to prefer Allman style, so if you don't care much, use that.
-
-All contributors need to either add a standard header for license info (on new files) or inform us of their wishes regarding which of the following licenses they would like their code to be made available under: the [BSD-3-Clause](http://opensource.org/licenses/BSD-3-Clause) license, the [LGPL-2.1](http://opensource.org/licenses/LGPL-2.1), or the [GPL-2.0](http://opensource.org/licenses/GPL-2.0).
-
-See more specific [C++ Coding Guidelines](https://docs.mamedev.org/contributing/cxx.html) on our documentation web site.
+If you choose to not use this emulator, good. If you're going to complain about me using AI,
+why don't you make an alternative yourself? Maybe you have better ideas than me, and maybe
+you do a better job than I did. Prove yourself, don't just whine about it.
 
 ## License
+
+(Figured I'd leave this stuff here.)
 
 The MAME project as a whole is made available under the terms of the
 [GNU General Public License, version 2](http://opensource.org/licenses/GPL-2.0)
