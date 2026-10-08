@@ -20,3 +20,14 @@ jobs:
           make -f Makefile.libretro \
             platform=ios \
             -j$(sysctl -n hw.ncpu)
+      - name: Locate and Rename Artifact
+        run: |
+          mkdir -p output/
+          find . -name "*.dylib" -exec cp {} output/ \;
+          ls -la output/
+            
+      - name: Upload Built Binaries
+        uses: actions/upload-artifact@v4
+        with:
+        name: theseuscdi-libretro-ios
+        path: output/
