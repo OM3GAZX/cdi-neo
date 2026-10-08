@@ -30,7 +30,7 @@ int RLOOP          = 1;
 int ENDEXEC        = 0;
 int retro_pause    = 0;
 int SHIFTON        = -1;
-char RPATH[512];
+char RPATH[RETRO_PATH_MAX];
 bool first_run     = true;
 bool audio_ready   = false;
 bool retro_load_ok = false;
@@ -718,7 +718,7 @@ void retro_get_system_info(struct retro_system_info *info)
 
    info->library_name     = "MAME";
    info->library_version  = build_version;
-   info->valid_extensions = "cmd|zip|7z";
+   info->valid_extensions = "cmd|zip|7z|chd|cue|iso|bin";
    info->need_fullpath    = true;
    info->block_extract    = true;
 }
@@ -869,9 +869,11 @@ void retro_init(void)
 
    libretro_vfs_init();
 
-   log_cb(RETRO_LOG_INFO, "------------------------\n");
-   log_cb(RETRO_LOG_INFO, "MAME %s\n", build_version);
-   log_cb(RETRO_LOG_INFO, "------------------------\n");
+   log_cb(RETRO_LOG_INFO, "---------------------------\n");
+   log_cb(RETRO_LOG_INFO, "Theseus-CDi %s\n", build_version);
+   log_cb(RETRO_LOG_INFO, "Forked from lr-mame. CD-i\n");
+   log_cb(RETRO_LOG_INFO, "driver backport by OM3GAZX.\n");
+   log_cb(RETRO_LOG_INFO, "---------------------------\n");
 }
 
 void retro_deinit(void)
@@ -962,8 +964,26 @@ bool retro_load_game(const struct retro_game_info *info)
 
    if (info)
    {
+      if (!info->path || !info->path[0])
+      {
+         log_cb(RETRO_LOG_ERROR, "%s: content path is empty.\n", __func__);
+         return false;
+      }
+
+      if (strchr(info->path, '"'))
+      {
+         log_cb(RETRO_LOG_ERROR, "%s: content path contains an unsupported quote character.\n", __func__);
+         return false;
+      }
+
       extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
-      strcpy(RPATH, info->path);
+      int const command_length = snprintf(RPATH, sizeof(RPATH), "cdimono1 -cdrom \"%s\"", info->path);
+      if ((command_length < 0) || (size_t(command_length) >= sizeof(RPATH)))
+      {
+         RPATH[0] = '\0';
+         log_cb(RETRO_LOG_ERROR, "%s: content path is too long for the CD-i launch command.\n", __func__);
+         return false;
+      }
    }
 
    int res = mmain2(1, RPATH);
