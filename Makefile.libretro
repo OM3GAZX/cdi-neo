@@ -6,6 +6,7 @@ NO_USE_MIDI ?= 1
 NO_USE_PORTAUDIO ?= 1
 PTR64 ?= 1
 TARGET ?= mame
+SUBTARGET ?= cdi
 # OS ?= linux
 # TARGETOS ?= linux
 PYTHON_EXECUTABLE ?= python3

@@ -4,7 +4,7 @@
 .core-defs:
   variables:
     MAKEFILE: Makefile.libretro
-    CORENAME: mame
+    CORENAME: theseus-cdi
     REGENIE: 0
 
 # Core definitions
@@ -102,7 +102,6 @@ libretro-build-windows-x64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # Windows 32-bit
 libretro-build-windows-i686:
@@ -114,7 +113,6 @@ libretro-build-windows-i686:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # Linux 64-bit
 libretro-build-linux-x64:
@@ -130,7 +128,6 @@ libretro-build-linux-x64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # Linux 32-bit
 libretro-build-linux-i686:
@@ -146,7 +143,6 @@ libretro-build-linux-i686:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # Linux 64-bit (ARM)
 libretro-build-linux-aarch64:
@@ -167,7 +163,6 @@ libretro-build-osx-x64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # MacOS ARM 64-bit
 libretro-build-osx-arm64:
@@ -180,7 +175,6 @@ libretro-build-osx-arm64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
     
 ################################### CELLULAR #################################
 # Android ARMv7a
@@ -190,13 +184,12 @@ android-armeabi-v7a:
     - .core-defs
   variables:
     TARGET:    mame
-    SUBTARGET: arcade
-    CORENAME:  mamearcade
+    SUBTARGET: cdi
+    CORENAME:  theseus-cdi
   cache:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # Android ARMv8a
 android-arm64-v8a:
@@ -205,28 +198,12 @@ android-arm64-v8a:
     - .core-defs
   variables:
     TARGET:    mame
-    SUBTARGET: arcade
-    CORENAME:  mamearcade
+    SUBTARGET: cdi
+    CORENAME:  theseus-cdi
   cache:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
-
-# Android ARMv8a (mess)
-android-arm64-v8a-mess:
-  extends:
-    - .libretro-android-make-arm64-v8a
-    - .core-defs
-  variables:
-    TARGET:    mame
-    SUBTARGET: mess
-    CORENAME:  mamemess
-  cache:
-    <<: *global_cache
-  only:
-    - master
-    - /^libretro/mame.*$/
 
 # Android 64-bit x86
 android-x86_64:
@@ -235,13 +212,12 @@ android-x86_64:
     - .core-defs
   variables:
     TARGET:    mame
-    SUBTARGET: arcade
-    CORENAME:  mamearcade
+    SUBTARGET: cdi
+    CORENAME:  theseus-cdi
   cache:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
     
 # Android x86
 #android-x86:
@@ -267,7 +243,6 @@ libretro-build-ios-arm64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
 
 # tvOS
 libretro-build-tvos-arm64:
@@ -278,7 +253,6 @@ libretro-build-tvos-arm64:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
     
 ################################### CONSOLES #################################
 # # Nintendo 3DS
@@ -295,7 +269,7 @@ libretro-build-tvos-arm64:
 
 # # Nintendo Switch
 # libretro-build-libnx-aarch64:
-#   extends:
+#   exten    - /^libretro/mame.*$/ds:
 #     - .libretro-libnx-static-retroarch-master
 #     - .core-defs
 
@@ -315,4 +289,3 @@ libretro-build-webos-armv7a:
     <<: *global_cache
   only:
     - master
-    - /^libretro/mame.*$/
