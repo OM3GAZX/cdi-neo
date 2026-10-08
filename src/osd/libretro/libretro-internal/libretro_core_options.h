@@ -249,7 +249,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       CORE_NAME "_rotation_mode",
       "Screen Rotation Mode",
       NULL,
-      "",
+      "Select screen rotation mode.",
       NULL,
       "video",
       {

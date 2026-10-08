@@ -530,9 +530,6 @@ static bool Set_Path_Option(void)
       Add_Option((char*)(tmp_dir));
    }
 
-   if (!g_rom_dir[0])
-      return true;
-
    if (!retro_system_directory || !retro_system_directory[0])
    {
       log_cb(RETRO_LOG_ERROR, "%s: RetroArch system directory is unavailable; cannot locate CD-i BIOS files.\n", __func__);

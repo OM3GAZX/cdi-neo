@@ -729,12 +729,12 @@ bool retro_load_game(const struct retro_game_info *info)
          return false;
       }
    }
+   else
+   {
+      snprintf(RPATH, sizeof(RPATH), "%s", cdi_model);
+   }
 
    int res = mmain2(1, RPATH);
-
-   /* Force success with empty content */
-   if (!RPATH[0])
-      res = 0;
 
    if (res != 0)
    {
